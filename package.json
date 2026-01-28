@@ -1,0 +1,23 @@
+{
+  "name": "email-service",
+  "version": "1.0.0",
+  "description": "Email service with responsive templates and robust error handling",
+  "main": "src/emailService.js",
+  "scripts": {
+    "test": "node tests/testEmailService.js",
+    "example": "node src/example.js",
+    "demo": "node src/demo.js"
+  },
+  "keywords": [
+    "email",
+    "template",
+    "nodemailer",
+    "retry",
+    "error-handling"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "nodemailer": "^7.0.13"
+  }
+}
