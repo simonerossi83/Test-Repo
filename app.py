@@ -5,6 +5,7 @@ from flask import Flask, request, jsonify
 from email_service import send_confirmation_email
 import logging
 import re
+import os
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -164,4 +165,7 @@ def get_messages():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    # Debug mode should only be enabled in development
+    # Set the DEBUG environment variable to control this
+    debug_mode = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
+    app.run(debug=debug_mode, port=5000)
