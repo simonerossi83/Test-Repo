@@ -7,14 +7,18 @@ const path = require('path');
  */
 class EmailService {
     constructor(config = {}) {
+        // Spread config first, then apply defaults for undefined values
+        const mergedConfig = { ...config };
+        
         this.config = {
-            maxRetries: config.maxRetries || 3,
-            retryDelay: config.retryDelay || 1000, // milliseconds
-            retryBackoffMultiplier: config.retryBackoffMultiplier || 2,
-            timeout: config.timeout || 10000, // 10 seconds
-            logErrors: config.logErrors !== false, // default true
-            logFile: config.logFile || path.join(__dirname, '../logs/email-errors.log'),
-            ...config
+            maxRetries: mergedConfig.maxRetries !== undefined ? mergedConfig.maxRetries : 3,
+            retryDelay: mergedConfig.retryDelay !== undefined ? mergedConfig.retryDelay : 1000,
+            retryBackoffMultiplier: mergedConfig.retryBackoffMultiplier !== undefined ? mergedConfig.retryBackoffMultiplier : 2,
+            timeout: mergedConfig.timeout !== undefined ? mergedConfig.timeout : 10000,
+            logErrors: mergedConfig.logErrors !== false,
+            logFile: mergedConfig.logFile || path.join(__dirname, '../logs/email-errors.log'),
+            from: mergedConfig.from,
+            smtp: mergedConfig.smtp
         };
 
         // Create transporter
@@ -66,15 +70,15 @@ class EmailService {
         if (!this.config.logErrors) return;
 
         const timestamp = new Date().toISOString();
-        const logEntry = {
+            const logEntry = {
             timestamp,
             error: {
                 message: error.message,
                 code: error.code,
                 command: error.command,
                 response: error.response,
-                responseCode: error.responseCode,
-                stack: error.stack
+                responseCode: error.responseCode
+                // Omitting stack trace to avoid exposing sensitive system information
             },
             context
         };
@@ -92,6 +96,13 @@ class EmailService {
     }
 
     /**
+     * Escape string for safe replacement in template
+     */
+    escapeTemplateValue(value) {
+        return String(value).replace(/\$/g, '$$$$');
+    }
+
+    /**
      * Load and populate email template
      */
     loadTemplate(templateName, variables = {}) {
@@ -103,10 +114,11 @@ class EmailService {
 
         let template = fs.readFileSync(templatePath, 'utf8');
 
-        // Replace template variables
+        // Replace template variables with escaped values
         for (const [key, value] of Object.entries(variables)) {
             const regex = new RegExp(`{{${key}}}`, 'g');
-            template = template.replace(regex, value);
+            const escapedValue = this.escapeTemplateValue(value);
+            template = template.replace(regex, escapedValue);
         }
 
         return template;
@@ -230,9 +242,48 @@ class EmailService {
     }
 
     /**
+     * Validate email address
+     */
+    validateEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    }
+
+    /**
+     * Validate URL
+     */
+    validateUrl(url) {
+        try {
+            const parsed = new URL(url);
+            return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+        } catch {
+            return false;
+        }
+    }
+
+    /**
      * Send confirmation email
      */
     async sendConfirmationEmail(to, username, confirmationUrl) {
+        // Validate inputs
+        if (!this.validateEmail(to)) {
+            const error = new Error(`Invalid email address: ${to}`);
+            this.logError(error, { operation: 'sendConfirmationEmail', to });
+            return {
+                success: false,
+                error: { message: error.message }
+            };
+        }
+
+        if (!this.validateUrl(confirmationUrl)) {
+            const error = new Error(`Invalid confirmation URL: ${confirmationUrl}`);
+            this.logError(error, { operation: 'sendConfirmationEmail', confirmationUrl });
+            return {
+                success: false,
+                error: { message: error.message }
+            };
+        }
+
         try {
             // Load and populate template
             const htmlContent = this.loadTemplate('confirmationEmail.html', {
@@ -246,8 +297,8 @@ class EmailService {
                 to,
                 subject: 'Conferma la tua email',
                 html: htmlContent,
-                // Plain text fallback
-                text: `Ciao ${username},\n\nGrazie per esserti registrato! Per confermare il tuo indirizzo email, visita questo link:\n\n${confirmationUrl}\n\nQuesto link scadrà tra 24 ore.\n\nSe non hai richiesto questa registrazione, ignora questa email.`
+                // Plain text fallback with escaped values
+                text: `Ciao ${this.escapeTemplateValue(username)},\n\nGrazie per esserti registrato! Per confermare il tuo indirizzo email, visita questo link:\n\n${this.escapeTemplateValue(confirmationUrl)}\n\nQuesto link scadrà tra 24 ore.\n\nSe non hai richiesto questa registrazione, ignora questa email.`
             };
 
             // Send with retry logic

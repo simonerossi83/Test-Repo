@@ -20,8 +20,8 @@ module.exports = {
     from: process.env.EMAIL_FROM || '"Il Tuo Servizio" <noreply@example.com>',
 
     // Retry configuration
-    maxRetries: parseInt(process.env.MAX_RETRIES) || 3,
-    retryDelay: parseInt(process.env.RETRY_DELAY) || 1000, // milliseconds
+    maxRetries: parseInt(process.env.MAX_RETRIES, 10) || 3,
+    retryDelay: parseInt(process.env.RETRY_DELAY, 10) || 1000, // milliseconds
     retryBackoffMultiplier: parseFloat(process.env.RETRY_BACKOFF) || 2,
 
     // Timeout configuration

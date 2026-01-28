@@ -209,6 +209,52 @@ async function testErrorClassification() {
 }
 
 /**
+ * Test: Input Validation
+ */
+async function testInputValidation() {
+    console.log('\n📝 Test 7: Input Validation');
+    console.log('-'.repeat(60));
+    
+    try {
+        const emailService = new EmailService(testConfig);
+        
+        // Test invalid email
+        const invalidEmailResult = await emailService.sendConfirmationEmail(
+            'invalid-email',
+            'Test User',
+            'https://example.com/confirm'
+        );
+        
+        if (!invalidEmailResult.success && invalidEmailResult.error.message.includes('Invalid email')) {
+            console.log('✓ Invalid email address rejected');
+        } else {
+            console.error('✗ Invalid email should be rejected');
+            return false;
+        }
+        
+        // Test invalid URL
+        const invalidUrlResult = await emailService.sendConfirmationEmail(
+            'test@example.com',
+            'Test User',
+            'not-a-url'
+        );
+        
+        if (!invalidUrlResult.success && invalidUrlResult.error.message.includes('Invalid confirmation URL')) {
+            console.log('✓ Invalid confirmation URL rejected');
+        } else {
+            console.error('✗ Invalid URL should be rejected');
+            return false;
+        }
+        
+        console.log('✓ Input validation working correctly');
+        return true;
+    } catch (error) {
+        console.error('✗ Input validation test failed:', error.message);
+        return false;
+    }
+}
+
+/**
  * Run all tests
  */
 async function runAllTests() {
@@ -222,7 +268,8 @@ async function runAllTests() {
         { name: 'Connection Verification', fn: testConnectionVerification },
         { name: 'Successful Email Sending', fn: testSuccessfulEmailSending },
         { name: 'Retry Logic', fn: testRetryLogic },
-        { name: 'Error Classification', fn: testErrorClassification }
+        { name: 'Error Classification', fn: testErrorClassification },
+        { name: 'Input Validation', fn: testInputValidation }
     ];
     
     const results = [];
