@@ -43,6 +43,12 @@ nav {
     font-weight: bold;
 }
 
+.logo .logo-text {
+    color: #fff;
+    font-size: 1.8rem;
+    font-weight: bold;
+}
+
 .nav-links {
     display: flex;
     list-style: none;
@@ -345,6 +351,14 @@ nav {
     margin-bottom: 2rem;
     text-align: center;
     color: #2c3e50;
+}
+
+.form-note {
+    text-align: center;
+    color: #888;
+    font-style: italic;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
 }
 
 .contact-form {
