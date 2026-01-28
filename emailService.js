@@ -1,10 +1,22 @@
 const nodemailer = require('nodemailer');
 
 /**
+ * Validates required environment variables
+ * @throws {Error} If required env vars are missing
+ */
+function validateConfig() {
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    throw new Error('SMTP_USER and SMTP_PASS environment variables must be set');
+  }
+}
+
+/**
  * Creates and configures the email transporter
  * @returns {nodemailer.Transporter} Configured transporter
  */
 function createTransporter() {
+  validateConfig();
+  
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
     port: parseInt(process.env.SMTP_PORT) || 587,
@@ -14,6 +26,37 @@ function createTransporter() {
       pass: process.env.SMTP_PASS
     }
   });
+}
+
+/**
+ * Escapes HTML special characters to prevent XSS
+ * @param {string} text - Text to escape
+ * @returns {string} Escaped text
+ */
+function escapeHtml(text) {
+  const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  };
+  return String(text).replace(/[&<>"']/g, m => map[m]);
+}
+
+/**
+ * Formats field name for display
+ * @param {string} key - Field key
+ * @returns {string} Formatted label
+ */
+function formatFieldLabel(key) {
+  const labels = {
+    nome: 'Nome',
+    email: 'Email',
+    telefono: 'Telefono',
+    messaggio: 'Messaggio'
+  };
+  return labels[key] || key;
 }
 
 /**
@@ -82,7 +125,7 @@ async function sendConfirmationEmail(toEmail, formData) {
               <p>Ecco un riepilogo dei dati che ci hai inviato:</p>
               <ul>
                 ${Object.entries(formData)
-                  .map(([key, value]) => `<li><span class="data-label">${key}:</span> ${value}</li>`)
+                  .map(([key, value]) => `<li><span class="data-label">${formatFieldLabel(key)}:</span> ${escapeHtml(value)}</li>`)
                   .join('')}
               </ul>
               <p>Ti risponderemo il prima possibile.</p>
@@ -123,8 +166,8 @@ Questa è una email automatica, si prega di non rispondere.
       messageId: info.messageId
     };
   } catch (error) {
-    console.error('Errore nell\'invio dell\'email:', error);
-    throw error;
+    console.error('Errore nell\'invio dell\'email:', error.message);
+    throw new Error('Impossibile inviare l\'email');
   }
 }
 
