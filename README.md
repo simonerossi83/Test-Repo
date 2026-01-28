@@ -6,9 +6,10 @@ Un'applicazione web semplice che permette agli utenti di inviare messaggi e rice
 
 - ✉️ **Conferma Email Automatica**: Gli utenti ricevono immediatamente una conferma via email quando inviano un messaggio
 - 🎯 **Interfaccia Intuitiva**: Form web semplice e facile da usare
-- 🔒 **Validazione**: Controllo dei campi richiesti prima dell'invio
-- 📝 **Archiviazione Messaggi**: I messaggi vengono salvati per riferimento futuro
+- 🔒 **Validazione**: Controllo dei campi richiesti, formato email e limiti di lunghezza
+- 📝 **Archiviazione Messaggi**: I messaggi vengono salvati temporaneamente in memoria (per scopi dimostrativi)
 - 🧪 **Modalità Test**: Possibilità di testare l'applicazione senza inviare email reali
+- 🛡️ **Sicurezza**: Protezione XSS nelle email e validazione rigorosa degli input
 
 ## Requisiti
 
@@ -103,6 +104,8 @@ Invia un nuovo messaggio e ricevi conferma via email.
 ### GET /api/messages
 Recupera tutti i messaggi inviati (per scopi di demo).
 
+**Nota**: I messaggi sono archiviati in memoria e verranno persi al riavvio dell'applicazione.
+
 **Risposta:**
 ```json
 {
@@ -162,6 +165,12 @@ Se usi Gmail, segui questi passaggi:
 ### Errori di validazione
 - Assicurati che tutti i campi (nome, email, messaggio) siano compilati
 - Verifica che l'email sia in un formato valido
+- Rispetta i limiti di lunghezza: Nome (100 caratteri), Email (254 caratteri), Messaggio (5000 caratteri)
+
+### I messaggi scompaiono
+- I messaggi sono archiviati in memoria e verranno persi al riavvio dell'applicazione
+- Questa è una limitazione intenzionale per scopi dimostrativi
+- Per un'applicazione in produzione, considera l'utilizzo di un database persistente
 
 ## Licenza
 

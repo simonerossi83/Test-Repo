@@ -4,6 +4,7 @@ Simple Flask application for message submission with automatic email confirmatio
 from flask import Flask, request, jsonify
 from email_service import send_confirmation_email
 import logging
+import re
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -11,6 +12,12 @@ logger = logging.getLogger(__name__)
 
 # In-memory storage for demo purposes
 messages = []
+
+# Constants for validation
+MAX_NAME_LENGTH = 100
+MAX_EMAIL_LENGTH = 254  # RFC 5321
+MAX_MESSAGE_LENGTH = 5000
+EMAIL_REGEX = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
 
 
 @app.route('/')
@@ -98,15 +105,33 @@ def submit_message():
         if not data or not all(key in data for key in ['name', 'email', 'message']):
             return jsonify({'error': 'Campi mancanti. Nome, email e messaggio sono richiesti.'}), 400
         
-        name = data['name']
-        email = data['email']
-        message_text = data['message']
+        name = data['name'].strip()
+        email = data['email'].strip()
+        message_content = data['message'].strip()
+        
+        # Validate field lengths
+        if len(name) > MAX_NAME_LENGTH:
+            return jsonify({'error': f'Il nome non può superare {MAX_NAME_LENGTH} caratteri.'}), 400
+        
+        if len(email) > MAX_EMAIL_LENGTH:
+            return jsonify({'error': f'L\'email non può superare {MAX_EMAIL_LENGTH} caratteri.'}), 400
+        
+        if len(message_content) > MAX_MESSAGE_LENGTH:
+            return jsonify({'error': f'Il messaggio non può superare {MAX_MESSAGE_LENGTH} caratteri.'}), 400
+        
+        # Validate that fields are not empty after stripping
+        if not name or not email or not message_content:
+            return jsonify({'error': 'I campi non possono essere vuoti.'}), 400
+        
+        # Validate email format
+        if not EMAIL_REGEX.match(email):
+            return jsonify({'error': 'Formato email non valido.'}), 400
         
         # Store message
         message_entry = {
             'name': name,
             'email': email,
-            'message': message_text
+            'message': message_content
         }
         messages.append(message_entry)
         
@@ -114,7 +139,7 @@ def submit_message():
         
         # Send automatic confirmation email
         try:
-            send_confirmation_email(email, name, message_text)
+            send_confirmation_email(email, name, message_content)
             logger.info(f"Email di conferma inviata a {email}")
         except Exception as email_error:
             logger.error(f"Errore nell'invio dell'email: {email_error}")

@@ -150,3 +150,103 @@ def test_multiple_message_submissions(client):
     
     # Verify all messages were stored
     assert len(messages) == 3
+
+
+def test_invalid_email_format(client):
+    """Test message submission with invalid email format."""
+    test_data = {
+        'name': 'Mario Rossi',
+        'email': 'invalid-email',
+        'message': 'Test message'
+    }
+    
+    response = client.post(
+        '/api/submit-message',
+        data=json.dumps(test_data),
+        content_type='application/json'
+    )
+    
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert 'error' in data
+    assert 'Formato email non valido' in data['error']
+
+
+def test_name_too_long(client):
+    """Test message submission with name exceeding max length."""
+    test_data = {
+        'name': 'a' * 101,  # Exceeds MAX_NAME_LENGTH (100)
+        'email': 'test@example.com',
+        'message': 'Test message'
+    }
+    
+    response = client.post(
+        '/api/submit-message',
+        data=json.dumps(test_data),
+        content_type='application/json'
+    )
+    
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert 'error' in data
+    assert 'nome' in data['error'].lower()
+
+
+def test_message_too_long(client):
+    """Test message submission with message exceeding max length."""
+    test_data = {
+        'name': 'Mario Rossi',
+        'email': 'test@example.com',
+        'message': 'a' * 5001  # Exceeds MAX_MESSAGE_LENGTH (5000)
+    }
+    
+    response = client.post(
+        '/api/submit-message',
+        data=json.dumps(test_data),
+        content_type='application/json'
+    )
+    
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert 'error' in data
+    assert 'messaggio' in data['error'].lower()
+
+
+def test_empty_fields_after_strip(client):
+    """Test message submission with whitespace-only fields."""
+    test_data = {
+        'name': '   ',
+        'email': 'test@example.com',
+        'message': '   '
+    }
+    
+    response = client.post(
+        '/api/submit-message',
+        data=json.dumps(test_data),
+        content_type='application/json'
+    )
+    
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert 'error' in data
+    assert 'vuoti' in data['error'].lower()
+
+
+def test_xss_prevention_in_email(client):
+    """Test that XSS attempts in message content are handled safely."""
+    test_data = {
+        'name': '<script>alert("XSS")</script>',
+        'email': 'test@example.com',
+        'message': '<img src=x onerror=alert("XSS")>'
+    }
+    
+    response = client.post(
+        '/api/submit-message',
+        data=json.dumps(test_data),
+        content_type='application/json'
+    )
+    
+    # Should succeed but content should be escaped
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['success'] is True
